@@ -8,15 +8,21 @@ use \QCloud_WeApp_SDK\Helper\Logger as Logger;
 use \QCloud_WeApp_SDK\Helper\Request as Request;
 
 class AuthAPI {
-    public static function login($code, $encrypt_data, $iv) {
-        $param = compact('code', 'encrypt_data', 'iv');
+    public static function login($code) {//code 获取openId登陆
+        $param = compact('code');
+//        var_dump($param);
         return self::sendRequest(Constants::INTERFACE_LOGIN, $param);
     }
 
-    public static function checkLogin($id, $skey) {
+    public static function checkLogin($id, $skey) {//登陆态验证
         $param = compact('id', 'skey');
         return self::sendRequest(Constants::INTERFACE_CHECK, $param);
     }
+    public static function decryptUserInfo($id, $skey, $encrypt_data, $iv) {//用户信息解密
+        $param = compact('id', 'skey', 'encrypt_data', 'iv');
+        return self::sendRequest(Constants::INTERFACE_DECRYPT_USER_INFO, $param);
+    }
+
 
     private static function sendRequest($apiName, $apiParam) {
         $url = Conf::getAuthServerUrl();
@@ -41,7 +47,7 @@ class AuthAPI {
         if (!is_array($body)) {
             throw new Exception('鉴权服务器响应格式错误，无法解析 JSON 字符串');
         }
-
+//        var_dump($body);
         if ($body['returnCode'] !== Constants::RETURN_CODE_SUCCESS) {
             throw new AuthAPIException("鉴权服务调用失败：{$body['returnCode']} - {$body['returnMessage']}", $body['returnCode']);
         }

@@ -17,6 +17,7 @@ class Constants {
 
     const INTERFACE_LOGIN = 'qcloud.cam.id_skey';
     const INTERFACE_CHECK = 'qcloud.cam.auth';
+    const INTERFACE_DECRYPT_USER_INFO = 'qcloud.cam.decrypt_user_info';//解密用户信息
 
     const RETURN_CODE_SUCCESS = 0;
     const RETURN_CODE_SKEY_EXPIRED = 60011;

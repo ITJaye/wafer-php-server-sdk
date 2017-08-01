@@ -9,16 +9,15 @@ class LoginService {
     public static function login() {
         try {
             $code = self::getHttpHeader(Constants::WX_HEADER_CODE);
-            $encryptedData = self::getHttpHeader(Constants::WX_HEADER_ENCRYPTED_DATA);
-            $iv = self::getHttpHeader(Constants::WX_HEADER_IV);
 
-            $loginResult = AuthAPI::login($code, $encryptedData, $iv);
+            $loginResult = AuthAPI::login($code);
 
             $result = array();
             $result[Constants::WX_SESSION_MAGIC_ID] = 1;
             $result['session'] = array(
                 'id' => $loginResult['id'],
                 'skey' => $loginResult['skey'],
+                'userInfo' => $loginResult['userInfo'],
             );
 
             Util::writeJsonResult($result);
@@ -27,7 +26,7 @@ class LoginService {
                 'code' => 0,
                 'message' => 'ok',
                 'data' => array(
-                    'userInfo' => $loginResult['user_info'],
+                    'userInfo' => null,
                 ),
             );
 
@@ -47,6 +46,8 @@ class LoginService {
         try {
             $id = self::getHttpHeader(Constants::WX_HEADER_ID);
             $skey = self::getHttpHeader(Constants::WX_HEADER_SKEY);
+
+
 
             $checkResult = AuthAPI::checkLogin($id, $skey);
 
@@ -68,6 +69,49 @@ class LoginService {
                 default:
                     $error = new LoginServiceException(Constants::ERR_CHECK_LOGIN_FAILED, $e->getMessage());
                     break;
+                }
+            } else {
+                $error = new LoginServiceException(Constants::ERR_CHECK_LOGIN_FAILED, $e->getMessage());
+            }
+
+            self::writeError($error);
+
+            return array(
+                'code' => -1,
+                'message' => $error->getMessage(),
+                'data' => array(),
+            );
+        }
+    }
+
+    public static function decryptUserInfo() {//解密用户信息
+        try {
+            $id = self::getHttpHeader(Constants::WX_HEADER_ID);
+            $skey = self::getHttpHeader(Constants::WX_HEADER_SKEY);
+
+            $encryptedData = self::getHttpHeader(Constants::WX_HEADER_ENCRYPTED_DATA);
+            $iv = self::getHttpHeader(Constants::WX_HEADER_IV);
+
+            $checkResult = AuthAPI::decryptUserInfo($id, $skey, $encryptedData, $iv);
+//            var_dump($checkResult);
+            return array(
+                'code' => 0,
+                'message' => 'ok',
+                'data' => array(
+                    'userInfo' => $checkResult['user_info'],
+                ),
+            );
+        } catch (Exception $e) {
+            if ($e instanceof AuthAPIException) {
+                switch ($e->getCode()) {
+                    case Constants::RETURN_CODE_SKEY_EXPIRED:
+                    case Constants::RETURN_CODE_WX_SESSION_FAILED:
+                        $error = new LoginServiceException(Constants::ERR_INVALID_SESSION, $e->getMessage());
+                        break;
+
+                    default:
+                        $error = new LoginServiceException(Constants::ERR_CHECK_LOGIN_FAILED, $e->getMessage());
+                        break;
                 }
             } else {
                 $error = new LoginServiceException(Constants::ERR_CHECK_LOGIN_FAILED, $e->getMessage());
